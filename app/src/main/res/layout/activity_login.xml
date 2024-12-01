@@ -29,13 +29,13 @@
     <TextView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="ID"
+        android:text="이메일"
         android:textSize="16sp"
         android:textColor="@android:color/black"
         android:layout_marginBottom="4dp" />
 
     <EditText
-        android:id="@+id/etUsername"
+        android:id="@+id/etEmail"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginBottom="18dp"
@@ -47,25 +47,35 @@
         android:text="비밀번호"
         android:textSize="16sp"
         android:textColor="@android:color/black"
-        android:layout_marginBottom="4dp" />
+        android:layout_marginBottom="1dp" />
 
     <EditText
         android:id="@+id/etPassword"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginBottom="18dp"
+        android:layout_marginBottom="10dp"
+        android:inputType="textPassword"
         android:background="@drawable/rounded_edittext" />
 
+    <CheckBox
+        android:id="@+id/checkBoxAutoLogin"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="자동 로그인"
+        android:layout_gravity="start"
+        android:layout_marginBottom="10dp"/>
+
     <android.widget.Button
-        android:id="@+id/loginButton"
+        android:id="@+id/btnLogin"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:text="로그인 하기"
         android:textColor="#FFFFFF"
         android:layout_marginBottom="16dp"
         android:background="@drawable/rounded_editbutton" />
+
     <TextView
-        android:id="@+id/tvSignup"
+        android:id="@+id/tvRegister"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="회원가입/비밀번호 찾기"
@@ -74,4 +84,3 @@
         android:clickable="true"
         android:focusable="true" />
 </LinearLayout>
-

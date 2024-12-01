@@ -1,9 +1,11 @@
 package com.example.myapplication333
 
+import android.content.Context
 import android.content.Intent
 import android.os.Bundle
 import android.util.Log
 import android.widget.Button
+import android.widget.CheckBox
 import android.widget.EditText
 import android.widget.TextView
 import android.widget.Toast
@@ -13,10 +15,11 @@ import retrofit2.Callback
 import retrofit2.Response
 
 class LoginActivity : AppCompatActivity() {
-    private lateinit var etUsername: EditText
+    private lateinit var etEmail: EditText
     private lateinit var etPassword: EditText
     private lateinit var btnLogin: Button
     private lateinit var tvRegister: TextView
+    private lateinit var checkBoxAutoLogin: CheckBox
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -24,6 +27,7 @@ class LoginActivity : AppCompatActivity() {
 
         try {
             initializeViews()
+            checkAutoLogin()  // 추가
             setupClickListeners()
         } catch (e: Exception) {
             Log.e("LoginActivity", "onCreate 오류: ${e.message}")
@@ -33,24 +37,40 @@ class LoginActivity : AppCompatActivity() {
 
     private fun initializeViews() {
         try {
-            etUsername = findViewById(R.id.etUsername)
+            etEmail = findViewById(R.id.etEmail)
             etPassword = findViewById(R.id.etPassword)
-            btnLogin = findViewById(R.id.loginButton)
-            tvRegister = findViewById(R.id.tvSignup)
+            btnLogin = findViewById(R.id.btnLogin)
+            tvRegister = findViewById(R.id.tvRegister)
+            checkBoxAutoLogin = findViewById(R.id.checkBoxAutoLogin)  // 추가
         } catch (e: Exception) {
             Log.e("LoginActivity", "initializeViews 오류: ${e.message}")
             throw e
         }
     }
 
+    // 추가된 함수
+    private fun checkAutoLogin() {
+        val sharedPref = getSharedPreferences("login_pref", Context.MODE_PRIVATE)
+        val isAutoLogin = sharedPref.getBoolean("auto_login", false)
+
+        if (isAutoLogin) {
+            val savedEmail = sharedPref.getString("email", "") ?: ""
+            val savedPassword = sharedPref.getString("password", "") ?: ""
+
+            if (savedEmail.isNotEmpty() && savedPassword.isNotEmpty()) {
+                loginUser(savedEmail, savedPassword)
+            }
+        }
+    }
+
     private fun setupClickListeners() {
         try {
             btnLogin.setOnClickListener {
-                val username = etUsername.text.toString().trim()
+                val email = etEmail.text.toString().trim()
                 val password = etPassword.text.toString().trim()
 
-                if (validateInputs(username, password)) {
-                    loginUser(username, password)
+                if (validateInputs(email, password)) {
+                    loginUser(email, password)
                 }
             }
 
@@ -63,11 +83,16 @@ class LoginActivity : AppCompatActivity() {
         }
     }
 
-    private fun validateInputs(username: String, password: String): Boolean {
+    private fun validateInputs(email: String, password: String): Boolean {
         when {
-            username.isEmpty() -> {
-                Toast.makeText(this, "아이디를 입력해주세요", Toast.LENGTH_SHORT).show()
-                etUsername.requestFocus()
+            email.isEmpty() -> {
+                Toast.makeText(this, "이메일을 입력해주세요", Toast.LENGTH_SHORT).show()
+                etEmail.requestFocus()
+                return false
+            }
+            !android.util.Patterns.EMAIL_ADDRESS.matcher(email).matches() -> {
+                Toast.makeText(this, "올바른 이메일 형식이 아닙니다", Toast.LENGTH_SHORT).show()
+                etEmail.requestFocus()
                 return false
             }
             password.isEmpty() -> {
@@ -79,22 +104,26 @@ class LoginActivity : AppCompatActivity() {
         return true
     }
 
-    private fun loginUser(username: String, password: String) {
-        // 로그인 시도 로그
-        Log.d("LoginActivity", "로그인 시도 - username: $username")
-
-        RetrofitClient.api.loginUser(username, password)
+    private fun loginUser(email: String, password: String) {
+        RetrofitClient.api.loginUser(email, password)
             .enqueue(object : Callback<ResponseModel> {
-                override fun onResponse(
-                    call: Call<ResponseModel>,
-                    response: Response<ResponseModel>
-                ) {
+                override fun onResponse(call: Call<ResponseModel>, response: Response<ResponseModel>) {
                     if (response.isSuccessful) {
                         val result = response.body()
-                        Log.d("LoginActivity", "서버 응답: ${result?.message}")
                         if (result?.success == true) {
+                            // 사용자 ID 저장
+                            val sharedPref = getSharedPreferences("user_prefs", Context.MODE_PRIVATE)
+                            with(sharedPref.edit()) {
+                                putInt("user_id", result.userId ?: -1)
+                                apply()
+                            }
+
+                            // 자동 로그인 정보 저장
+                            if (checkBoxAutoLogin.isChecked) {
+                                saveLoginInfo(email, password)
+                            }
+
                             Toast.makeText(this@LoginActivity, "로그인 성공!", Toast.LENGTH_SHORT).show()
-                            // 메인 화면으로 이동
                             val intent = Intent(this@LoginActivity, MainActivity::class.java)
                             intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
                             startActivity(intent)
@@ -107,7 +136,6 @@ class LoginActivity : AppCompatActivity() {
                             ).show()
                         }
                     } else {
-                        // 서버 오류 응답의 자세한 내용 로깅
                         val errorBody = response.errorBody()?.string()
                         Log.e("LoginActivity", "서버 오류 응답: $errorBody")
                         Log.e("LoginActivity", "HTTP 상태 코드: ${response.code()}")
@@ -125,5 +153,25 @@ class LoginActivity : AppCompatActivity() {
                     ).show()
                 }
             })
+    }
+
+    private fun saveLoginInfo(email: String, password: String) {
+        val sharedPref = getSharedPreferences("login_pref", Context.MODE_PRIVATE)
+        with(sharedPref.edit()) {
+            putBoolean("auto_login", true)
+            putString("email", email)
+            putString("password", password)
+            apply()
+        }
+    }
+
+    companion object {
+        fun clearAutoLogin(context: Context) {
+            val sharedPref = context.getSharedPreferences("login_pref", Context.MODE_PRIVATE)
+            with(sharedPref.edit()) {
+                clear()
+                apply()
+            }
+        }
     }
 }

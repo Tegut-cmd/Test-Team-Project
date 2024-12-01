@@ -1,8 +1,7 @@
 package com.example.myapplication333
 
-
-data class ResponseModel(
+data class PostResponse(
     val success: Boolean,
     val message: String,
-    val userId: Int? = null
+    val post: Post?
 )
